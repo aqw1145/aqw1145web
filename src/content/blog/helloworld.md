@@ -1,27 +1,19 @@
 ---
-title: "我的第一篇博客"
-description: "记录个人网站从零开始搭建的过程"
+title: "helloworld"
+description: "test"
 pubDate: 2026-10-16
 ---
 
-# 我的第一篇博客
+<a href="/">Home</a>
+<a href="/about/">About</a>
 
-欢迎来到我的个人网站！
+<h1>About Me</h1>
+<h2>... and my new Astro site!</h2>
 
-这个网站主要用来记录：
+# 大
 
-- 学习笔记
-- 科研与实验
-- 技术实践
-- 生活与摄影
+小小
 
-## 为什么建立这个网站？
+## 中
 
-希望建立一个属于自己的长期记录空间。
-
-## 今天完成的事情
-
-1. 安装 Node.js 和 Git
-2. 创建 Astro 项目
-3. 启动本地开发服务器
-4. 写下第一篇文章
+小
