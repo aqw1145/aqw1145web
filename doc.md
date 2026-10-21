@@ -4,7 +4,7 @@
 
 ## 1. 整体实现
 
-项目使用 Astro，首页采用「个人空间」风格：浅灰色背景、淡紫色欢迎区域、白色文章卡片和浅绿色近况卡片。
+项目使用 Astro，首页主体展示用户提供的《湖城晚照》SVG 插画，完整保留原有 4:3 比例。公共导航、页脚和深浅主题继续由共享布局提供。
 
 首页、文章页和相册页由 Astro 模板、TypeScript 配置、CSS 和少量浏览器端 JavaScript 组成，没有引入 React、Vue 或额外的 UI 组件库。文章采用「空间卡片」风格；相册保留浅灰页面和白色圆角卡片，按日期展示照片，支持用子文件夹或手动配置添加日期内分类。
 
@@ -17,10 +17,7 @@
 | 区域 | 主要作用 | 对应样式类 |
 | --- | --- | --- |
 | 顶部导航 | 首页、文章、相册与主题切换 | `.space-header`、`.space-nav` |
-| 欢迎区域 | 昵称、简介、阅读入口和字母头像 | `.welcome-card` |
-| 最新文章 | 按发布日期倒序展示最多三篇文章 | `.writing-card` |
-| 相册入口 | 展示山水插画并链接到相册 | `.photo-card` |
-| 此刻近况 | 展示当前想记录的一段话 | `.now-card` |
+| 首页主体 | 完整展示《湖城晚照》插画及辅助技术可读的标题 | `.home-artwork`、`.home-artwork-title` |
 | 页脚 | 版权年份和返回顶部 | `.space-footer` |
 
 ## 2. 文件结构与职责
@@ -29,7 +26,8 @@
 web/
 ├─ public/
 │  └─ images/
-│     └─ space-landscape.svg       相册入口使用的山水插画
+│     ├─ lake-city-afterglow.svg   首页《湖城晚照》插画
+│     └─ space-landscape.svg       旧版入口使用的山水插画（保留）
 ├─ src/
 │  ├─ components/
 │  │  ├─ BaseHead.astro            公共页面元信息、全局样式和字体
@@ -42,7 +40,7 @@ web/
 │  │  ├─ blog/                    Markdown / MDX 文章
 │  │  └─ photos/                  相册源图片（JPG / PNG 等）
 │  ├─ data/
-│  │  ├─ home.ts                  个人介绍、近况与共享品牌信息
+│  │  ├─ home.ts                  共享品牌、作者与首页元信息
 │  │  └─ photos.ts                相册自动扫描、默认信息与可选覆盖
 │  ├─ layouts/
 │  │  ├─ SpaceLayout.astro         共享导航、页脚和主题切换
@@ -76,94 +74,39 @@ web/
 
 ## 3. 首页入口：`src/pages/index.astro`
 
-### 3.1 一个 Astro 文件的三个部分
+### 3.1 主体结构
 
-首页可以按执行位置理解为三部分：
+首页继续使用 `SpaceLayout.astro`，页面标题来自 `home.name`，描述由 `home.bio` 与 `home.intro` 组成。指定区域 `main#main-content` 内只展示《湖城晚照》插画，原欢迎区域、最新文章、相册入口和近况模块已从首页模板移除。
 
-1. 文件顶部两个 `---` 之间的代码：导入模块、读取文章、排序和计算展示数据。静态构建时执行，不会原样发送给浏览器。
-2. HTML 模板：使用 `{表达式}` 插入数据，通过组件和标签描述页面结构。
-3. 公共外壳：用 `SpaceLayout.astro` 包住主要内容。主题脚本由布局提供，首页入口不再重复维护导航、页脚和主题代码。
+主体包含一个视觉隐藏的一级标题「湖城晚照」和一个 `figure.home-artwork`。图片路径为 `/images/lake-city-afterglow.svg`，无需读取文章集合，也没有首页专用客户端脚本。文章与相册可通过公共导航进入。
 
-数据流如下：
+### 3.2 插画资源
 
-```text
-home.ts ───────────────────→ 个人介绍、头像字母、近况
-src/content/blog/ ─────────→ 文章集合 → 按发布日期排序 → 最新三篇
-SpaceIcon.astro ───────────→ 内联 SVG 图标
-home.css ─────────────────→ 布局、颜色、响应式与交互样式
-SpaceLayout.astro ─────────→ 导航、页脚、元信息与主题切换
-                                  ↓
-                            index.astro
-                                  ↓
-                       构建生成 dist/index.html
-                                  ↓
-                 浏览器展示内容，并执行主题切换脚本
-```
+原文件为用户提供的 `C:\Users\qaz15\Pictures\Camera Roll\湖城晚照.svg`，已复制到 `public/images/lake-city-afterglow.svg`，网站发布使用项目内的副本。原文件保持不变。SVG 原始尺寸为 `1600×1200`，图片标签声明对应的 `width`、`height`，提前保留布局空间。
 
-### 3.2 读取并排序文章
+图片使用有内容的 `alt` 描述湖面、夕阳、城市、古塔、荷花、黑天鹅与三花猫；`loading="eager"` 与 `fetchpriority="high"` 用于首页主要图片，`decoding="async"` 允许异步解码。页面直接引用 SVG，保持矢量清晰度和原有颜色，不转换为位图发布。
 
-```ts
-const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
-const recentPosts = posts.slice(0, 3);
-```
+### 3.3 样式与数据流
 
-`getCollection('blog')` 读取 `content.config.ts` 中定义的 `blog` 集合。每篇文章包含 `id` 和 `data`，标题、描述、日期等字段位于 `data` 中。
+`.home-artwork img` 使用 `display: block; width: 100%; height: auto`，随共享页面容器宽度等比缩放，完整显示画面。`border-radius: 0` 保留原插画边框，`figure` 的默认外边距被清除。`.home-artwork-title` 使用视觉隐藏样式，让辅助技术仍能读取一级标题。
 
-`valueOf()` 将日期转换成可比较的时间戳。这里用后一项减前一项，让较新的文章排在前面。`slice(0, 3)` 只取前三篇；卡片底部的总数则使用 `posts.length`，因此总数可以大于首页展示数。
+数据流为：`public/images/lake-city-afterglow.svg` → 首页图片；`home.ts` → 页面标题和描述；`SpaceLayout.astro` → 公共导航、页脚和主题；`home.css` → 插画尺寸及共享页面样式。
 
-当前排序依据是 `pubDate`，没有使用 `updatedDate`。首页也没有额外过滤未来发布日期或草稿；集合中的模板示例文章同样会进入列表和数量统计。
-
-### 3.3 输出文章卡片
-
-```astro
-<a
-  class:list={['post-link', { 'featured-post': index === 0 }]}
-  href={`/blog/${post.id}/`}
->
-```
-
-`class:list` 根据条件拼接类名。所有文章都有 `post-link`，第一篇还会获得 `featured-post`，从而使用更大的标题字号，并显示「最新一篇」标签。
-
-文章链接使用集合生成的 `post.id`，与 `src/pages/blog/[...slug].astro` 中的路径生成方式一致。点击整条文章卡片即可进入对应详情页。
-
-当集合为空时，模板会展示「第一篇文章，还在酝酿中。」的空状态。
-
-### 3.4 日期和页脚年份
-
-`dateLabel()` 使用 `Intl.DateTimeFormat`，指定中文区域和 `Asia/Shanghai` 时区，并将日期中的 `/` 替换成 `.`。例如显示为 `2026.10.16`。
-
-`<time datetime={...}>` 同时保留机器可读取的 ISO 日期，供辅助技术等识别。
-
-页脚年份由 `SpaceLayout.astro` 中的 `new Date().getFullYear()` 生成。由于网站是静态构建，部署后的年份要在重新构建后才会更新。
+页脚年份仍由 `SpaceLayout.astro` 在构建时生成，静态部署后需重新构建才会更新。
 
 ## 4. 个人资料：`src/data/home.ts`
 
-这个文件集中管理首页主要文案，以及首页、文章页和相册共享的品牌与作者信息，修改时通常不需要调整页面布局。
+这个文件管理共享品牌、文章作者和首页元信息。当前首页主体是插画，个人介绍与近况不再作为首页可见模块展示。
 
-| 字段 | 显示位置 |
+| 字段 | 当前用途 |
 | --- | --- |
-| `name` | 导航品牌、欢迎标题、网页标题和页脚昵称 |
-| `initial` | 首页圆形字母头像及文章作者头像 |
-| `greeting` | 欢迎标题的问候语 |
-| `bio` | 首页简介、首页描述及文章作者简介 |
-| `intro` | 欢迎区域的详细介绍，也参与网页描述 |
-| `nowTitle` | 「此刻」卡片的标题 |
-| `now` | 「此刻」卡片的正文 |
+| `name` | 公共导航品牌、页面标题和文章作者 |
+| `initial` | 文章作者头像 |
+| `bio` | 首页页面描述和文章作者简介 |
+| `intro` | 首页页面描述的补充 |
+| `greeting`、`nowTitle`、`now` | 旧版首页保留字段，当前首页不渲染 |
 
-例如，可以直接修改现有字段：
-
-```ts
-name: '你的昵称',
-initial: 'Y.',
-bio: '分享技术笔记，也记录普通生活。',
-nowTitle: '最近在整理学习笔记。',
-```
-
-导航左侧的小型字母标志 `a✳` 是写在 `SpaceLayout.astro` 中的装饰，不受 `home.initial` 控制；更换品牌时可以一起调整。
-
-首页、文章页和相册使用 `home.ts` 中的昵称，页面标题和描述由各页面传入 `SpaceLayout.astro`。修改品牌信息时优先维护 `home.ts`；`src/consts.ts` 仅供旧模板组件保留使用。
+导航左侧的小型字母标志 `a✳` 写在 `SpaceLayout.astro` 中，不受 `home.initial` 控制；更换品牌时可以一起调整。各页面的标题和描述由页面传入共享布局；`src/consts.ts` 仅供旧模板组件保留使用。
 
 ## 5. 文章内容
 
@@ -197,7 +140,7 @@ pubDate: '2026-10-21'
 
 开发模式下会重新加载内容；部署静态网站时需要重新构建、发布，新增内容才会出现在线上。
 
-新文章会出现在 `/blog/` 的列表中；如果它是按发布日期排序后的最新三篇之一，也会出现在首页。这个文件对应的详情地址通常是 `/blog/my-first-post/`，最终以集合生成的 ID 为准。
+新文章会出现在 `/blog/` 的列表中，首页主体保持插画展示。这个文件对应的详情地址通常是 `/blog/my-first-post/`，最终以集合生成的 ID 为准。
 
 ## 6. 样式：`src/styles/home.css`
 
@@ -227,45 +170,25 @@ pubDate: '2026-10-21'
 
 每个变量使用 `light-dark(浅色值, 深色值)`，根据当前 `color-scheme` 选择颜色。调整配色时应成对修改，保持两种主题下的文字可读性。
 
-山水插画、头像和部分装饰保留固定配色，不会随主题完全变色。
+首页 SVG 插画保留原文件配色，页面背景、导航和主题按钮跟随深浅主题。
 
-### 6.3 桌面布局
+### 6.3 首页插画布局
 
-`.space-shell` 将页面最大宽度限制为 `1120px`，同时保留左右留白。
+`.space-shell` 将页面最大宽度限制为 `1120px`，保留左右留白。首页的 `.home-main` 使用容器全部可用宽度，`.home-artwork` 清除默认外边距，图片以 4:3 比例完整展示。
 
-欢迎区域通过 `grid-template-columns: 1.2fr 1fr` 分为文案和头像装饰两部分。
-
-主体卡片网格使用：
-
-```css
-.home-grid {
-  display: grid;
-  grid-template-columns: 1.48fr 1fr;
-  gap: 22px;
-}
-
-.writing-card {
-  grid-row: span 2;
-}
-```
-
-因此文章卡片占左侧两行，相册和近况卡片位于右侧。卡片的实际高度随内容变化，手机端按顺序排列为单列。
-
-`.space-card` 统一定义卡片背景、边框、圆角和内边距；各类型卡片再覆盖自己的细节。
+`home.css` 中旧版欢迎区域、文章卡片和近况模块的样式仍保留，当前首页模板不使用这些模块。调整当前首页插画时，维护 `.home-artwork`、`.home-artwork img` 和 `.home-artwork-title`。
 
 ### 6.4 响应式断点
 
-| 屏幕条件 | 主要调整 |
+| 屏幕条件 | 当前首页的主要调整 |
 | --- | --- |
-| 宽度至少 `1500px` | 增加导航和欢迎区域的高度 |
-| 宽度至多 `960px` | 缩小留白、头像与卡片间距 |
-| 宽度至多 `720px` | 主体卡片改为单列，文章卡片不再跨行 |
-| 宽度至多 `520px` | 导航另起一行，欢迎区域改为单列，小头像改为右上角装饰 |
-| 宽度至多 `360px` | 进一步收紧间距并缩小标题和装饰 |
+| 宽度至少 `1500px` | 增加公共导航区域高度 |
+| 宽度至多 `960px` | 缩小共享页面左右留白和导航间距 |
+| 宽度至多 `720px` | 进一步收紧页面宽度与导航控件 |
+| 宽度至多 `520px` | 导航另起一行，插画继续按容器宽度等比缩放 |
+| 宽度至多 `360px` | 进一步收紧页面左右留白 |
 
-多个 `max-width` 条件可能同时满足。后面定义、优先级相同的规则会覆盖前面的规则。
-
-页面还使用 `min-width: 0` 避免网格内容撑开列宽，使用 `overflow-wrap: anywhere` 处理手机上的长标题，并通过两行摘要截断控制文章列表的高度。
+图片使用 `height: auto`，不同屏幕均完整显示画面。旧版首页卡片的断点样式目前不影响插画。
 
 ## 7. 深浅色切换
 
@@ -306,7 +229,7 @@ JavaScript 只修改属性，实际颜色由 CSS 的 `color-scheme` 和 `light-d
 
 当前按钮只在浅色和深色之间切换，没有提供「恢复跟随系统」的第三个选项。首页、文章列表、正文和相册共用同一存储键和布局，访问这些页面时会恢复相同选择。
 
-## 8. 图标与相册封面
+## 8. 图标与首页插画
 
 ### 8.1 `SpaceIcon.astro`
 
@@ -321,15 +244,13 @@ JavaScript 只修改属性，实际颜色由 CSS 的 `color-scheme` 和 `light-d
 
 SVG 使用 `stroke="currentColor"`，继承周围元素的文字颜色。图标被标记为 `aria-hidden="true"` 和 `focusable="false"`，不占用独立的键盘焦点；操作含义由相邻文字或外层按钮标签说明。
 
-### 8.2 `space-landscape.svg`
+### 8.2 `lake-city-afterglow.svg`
 
-这张图是由天空、太阳、山体、水面和岸边形状组成的 SVG 插画，用作首页相册入口封面。
+`public/images/lake-city-afterglow.svg` 是当前首页主体插画，通过 `/images/lake-city-afterglow.svg` 访问。页面采用普通图片标签引用，不将 SVG 内部路径直接插入页面 DOM。
 
-`public` 目录中的文件通过站点根路径访问，因此模板使用 `/images/space-landscape.svg`，不需要 `import`。
+更换插画时，可替换项目内的 SVG 副本；若新图尺寸或内容不同，需要同步更新首页图片的宽高、替代文本和隐藏标题。原先的 `public/images/space-landscape.svg` 保留在项目中，当前首页不再使用它。
 
-图片的 `alt=""` 表示它属于装饰，相册链接的名称由「镜头里的日常」标题提供。`width`、`height` 提供图片尺寸信息，CSS 通过 `object-fit: cover` 适配封面容器；图片还使用延迟加载和异步解码。
-
-要替换首页封面，将新图片放入 `public/images/` 并修改首页 `<img>` 的 `src`、尺寸信息即可。相册内容由 `src/data/photos.ts` 自动扫描 `src/content/photos/` 后生成，`photoOverrides` 可覆盖照片信息；修改入口封面不会改变相册里的图片。相册介绍区也复用了这张插画作为叠放照片的装饰。
+相册内容由 `src/data/photos.ts` 扫描 `src/content/photos/` 管理；首页插画与相册照片分别维护。
 
 ## 9. 公共页面信息与可访问性
 
@@ -342,7 +263,7 @@ SVG 使用 `stroke="currentColor"`，继承周围元素的文字颜色。图标�
 - `lang="zh-CN"` 声明主要语言。
 - 「跳到主要内容」链接在获得键盘焦点时显示。
 - 导航用 `aria-current="page"` 标识当前页面。
-- 卡片用 `aria-labelledby` 关联可见标题。
+- 首页保留视觉隐藏的一级标题，主体插画提供描述画面的替代文本。
 - 主题按钮用 `aria-label` 说明下一步操作，用 `aria-pressed` 表示深色模式状态。
 - 链接和按钮具有 `:focus-visible` 焦点轮廓。
 - 触摸设备下，主题按钮和部分文字链接扩展到至少 `44px` 的点击高度。
@@ -410,10 +331,9 @@ Cloudflare 仓库构建设置保持：
 
 | 想修改的内容 | 对应位置 |
 | --- | --- |
-| 昵称、介绍、近况 | `src/data/home.ts` |
+| 品牌、文章作者与首页页面描述 | `src/data/home.ts` |
 | 共享导航、品牌标志、页脚、主题脚本 | `src/layouts/SpaceLayout.astro` |
-| 首页固定卡片文案 | `src/pages/index.astro` |
-| 首页显示的文章数量 | `index.astro` 中的 `posts.slice(0, 3)` |
+| 首页主体图片、替代文本、隐藏标题 | `src/pages/index.astro` |
 | 新增或修改文章 | `src/content/blog/` |
 | 文章字段要求 | `src/content.config.ts` |
 | 首页颜色、圆角、间距、手机布局 | `src/styles/home.css` |
@@ -422,7 +342,7 @@ Cloudflare 仓库构建设置保持：
 | 文章标题、正文框架、目录补全 | `src/layouts/BlogPost.astro` |
 | 文章卡片和正文排版 | `src/styles/blog.css` |
 | 图标路径 | `src/components/SpaceIcon.astro` |
-| 首页相册入口封面 | `public/images/` 和首页的图片路径 |
+| 首页 SVG 插画 | `public/images/lake-city-afterglow.svg` |
 | 相册源图片 | `src/content/photos/` |
 | 相册自动扫描、默认日期、分类和信息覆盖 | `src/data/photos.ts` |
 | 相册日期排序与分类逻辑 | `src/lib/groupPhotos.ts` |
@@ -438,7 +358,9 @@ Cloudflare 仓库构建设置保持：
 
 ## 12. 当前验证范围
 
-本次（2026-10-22）根据 Cloudflare 失败日志新增静态部署配置，读取照片文件大小，超限原图链接改用长边最多 4096px、质量 90 的高清 WebP，分享封面改用 1920px 以内的预览图，并补充发布文件不得超过 25 MiB 的集成测试；两份文档同步更新。遵守 `AGENTS.md`，本次未运行测试、构建、部署或其他修改后检查，尚未确认线上部署成功。此前分类搜索、子文件夹分类、空分类处理、搜索、排序等调整也未重新验证。后续代码完成后先不主动检查，待用户明确要求时再执行。以下为这些修改之前的历史验证记录，不代表当前代码已验证。
+首页主体已替换为《湖城晚照》SVG 插画，并加入响应式图片样式及无障碍标题，两份文档同步更新。按用户要求，未运行构建、测试、部署、浏览器或其他修改后检查。
+
+此前（2026-10-22）根据 Cloudflare 失败日志新增静态部署配置，读取照片文件大小，超限原图链接改用长边最多 4096px、质量 90 的高清 WebP，分享封面改用 1920px 以内的预览图，并补充发布文件不得超过 25 MiB 的集成测试；两份文档同步更新。遵守 `AGENTS.md`，本次未运行测试、构建、部署或其他修改后检查，尚未确认线上部署成功。此前分类搜索、子文件夹分类、空分类处理、搜索、排序等调整也未重新验证。后续代码完成后先不主动检查，待用户明确要求时再执行。以下为这些修改之前的历史验证记录，不代表当前代码已验证。
 
 首页、文章列表、正文、相册及照片详情已通过 Astro 生产构建，共生成 11 个 HTML 页面，其中包含五个独立照片详情页。所有页面都接入了共享主题按钮；已检查最终产物中的 249 处本地资源、链接及锚点引用，未发现缺失目标或重复 ID。五张原图与源文件的 SHA-256 一致，详情预览均为长边不超过 1920px 的等比 WebP。
 

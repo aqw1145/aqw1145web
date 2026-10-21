@@ -1,63 +1,13 @@
 ---
-import { getCollection } from 'astro:content';
 import SpaceLayout from '../layouts/SpaceLayout.astro';
-import SpaceIcon from '../components/SpaceIcon.astro';
 import { home } from '../data/home';
-
-const posts = (await getCollection('blog')).sort(
-	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
-const recentPosts = posts.slice(0, 3);
-const dateLabel = (date: Date) =>
-	new Intl.DateTimeFormat('zh-CN', {
-		year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Shanghai',
-	}).format(date).replaceAll('/', '.');
 ---
 
 <SpaceLayout title={`${home.name} 的个人空间`} description={`${home.bio}${home.intro}`}>
 	<main id="main-content" class="home-main">
-		<section class="welcome-card" aria-labelledby="welcome-heading">
-			<div class="welcome-copy">
-				<div class="welcome-kicker"><span aria-hidden="true"></span>一个持续生长的个人空间</div>
-				<h1 id="welcome-heading">{home.greeting}<br /><span class="name-highlight">{home.name}<span class="greeting-dot">.</span></span></h1>
-				<p class="welcome-bio">{home.bio}</p><p class="welcome-intro">{home.intro}</p>
-				<div class="welcome-links"><a class="space-button" href="/blog/">读读我的文章 <SpaceIcon name="right" /></a></div>
-			</div>
-			<div class="welcome-art" aria-hidden="true">
-				<div class="orbit orbit-outer"></div><div class="orbit orbit-inner"></div><div class="avatar-monogram">{home.initial}</div>
-				<div class="orbit-badge badge-code"><SpaceIcon name="code" /></div><div class="orbit-badge badge-leaf"><SpaceIcon name="leaf" /></div>
-				<span class="orbit-star star-one">✳</span><span class="orbit-star star-two">+</span><span class="art-caption">A LITTLE SPACE,<br />A LOT OF POSSIBILITIES.</span>
-			</div>
-			<span class="welcome-corner" aria-hidden="true">MAKE YOURSELF AT HOME ↙</span>
-		</section>
-		<div class="home-grid">
-			<section class="space-card writing-card" aria-labelledby="writing-heading">
-				<div class="card-heading"><div class="card-title"><span class="icon-tile"><SpaceIcon name="book" /></span><h2 id="writing-heading">最近写下的</h2></div><a class="quiet-link" href="/blog/">全部文章 <SpaceIcon name="arrow" /></a></div>
-				<p class="section-subtitle">想法落在纸上，就有了形状。</p>
-				{
-					recentPosts.length > 0 ? (
-						<ol class="recent-posts">
-							{recentPosts.map((post, index) => (
-								<li><a class:list={['post-link', { 'featured-post': index === 0 }]} href={`/blog/${post.id}/`}>
-									<div class="post-topline"><time datetime={post.data.pubDate.toISOString()}>{dateLabel(post.data.pubDate)}</time>{index === 0 && <span class="new-label">最新一篇</span>}</div>
-									<h3>{post.data.title}</h3><p>{post.data.description}</p><span class="post-arrow"><SpaceIcon name="arrow" /></span>
-								</a></li>
-							))}
-						</ol>
-					) : (
-						<div class="empty-posts"><SpaceIcon name="leaf" /><p>第一篇文章，还在酝酿中。</p></div>
-					)
-				}
-				<div class="writing-footer"><span>共收录 {posts.length} 篇文章</span><span>保持好奇，持续记录 <span aria-hidden="true">✳</span></span></div>
-			</section>
-			<a class="space-card photo-card" href="/photo/" aria-labelledby="photo-heading">
-				<div class="card-heading"><div class="card-title"><span class="icon-tile"><SpaceIcon name="camera" /></span><h2 id="photo-heading">镜头里的日常</h2></div><span class="card-arrow"><SpaceIcon name="arrow" /></span></div>
-				<p class="section-subtitle">换个视角，收藏生活的切片。</p>
-				<div class="landscape-frame"><img src="/images/space-landscape.svg" alt="" width="720" height="420" loading="lazy" decoding="async" /><span class="landscape-label">PAUSE & WANDER<span>走走，看看。</span></span><span class="photo-entry">打开相册 <SpaceIcon name="arrow" /></span></div>
-			</a>
-			<section class="space-card now-card" aria-labelledby="now-heading">
-				<div class="now-topline"><span class="small-label">NOW / 此刻</span><SpaceIcon name="leaf" /></div><h2 id="now-heading">{home.nowTitle}</h2><p>{home.now}</p><span class="now-decoration" aria-hidden="true">✳</span>
-			</section>
-		</div>
+		<h1 class="home-artwork-title">湖城晚照</h1>
+		<figure class="home-artwork">
+			<img src="/images/lake-city-afterglow.svg" width="1600" height="1200" alt="湖城晚照插画：夕阳下的湖面、城市天际线和古塔，前景是荷花、黑天鹅与三花猫。" loading="eager" fetchpriority="high" decoding="async" />
+		</figure>
 	</main>
 </SpaceLayout>

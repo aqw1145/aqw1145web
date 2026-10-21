@@ -49,6 +49,9 @@ html[data-home-theme='dark'] .home { color-scheme: dark; }
 .theme-toggle[aria-pressed='true'] .theme-sun { display: block; }
 .theme-toggle[aria-pressed='true'] .theme-moon { display: none; }
 .home .home-main { width: 100%; max-width: none; margin: 0; padding: 8px 0 0; }
+.home-artwork-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.home .home-artwork { margin: 0; }
+.home-artwork img { display: block; width: 100%; height: auto; border-radius: 0; }
 .welcome-card { position: relative; display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; min-height: 414px; padding: 47px 55px; border-radius: 27px; background: var(--space-purple-soft); overflow: hidden; }
 .welcome-copy { position: relative; z-index: 1; }
 .welcome-kicker { display: flex; align-items: center; gap: 9px; color: var(--space-purple); font-size: 12px; letter-spacing: 1.3px; }
