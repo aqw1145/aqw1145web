@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -41,5 +41,13 @@ test('详情页用真实链接返回相册首页、切换前后照片并打开�
 		assert.ok(original?.href.startsWith('/_astro/'));
 		assert.equal(original.target, '_blank');
 		assert.ok(existsSync(path.join(dist, original.href.replace(/^\//, ''))));
+	}
+});
+
+test('发布目录中的每个文件均符合 Cloudflare Workers 的 25 MiB 限制', () => {
+	for (const entry of readdirSync(dist, { recursive: true, withFileTypes: true })) {
+		if (!entry.isFile()) continue;
+		const file = path.join(entry.parentPath, entry.name);
+		assert.ok(statSync(file).size <= 25 * 1024 * 1024, `发布文件超过 25 MiB：${path.relative(dist, file)}`);
 	}
 });

@@ -37,14 +37,26 @@ interface Props {
 	total: number;
 }
 const { photo, previous, next, position, total } = Astro.props;
-// 普通浏览使用等比压缩的大图，原始文件由独立链接提供。
+// 普通浏览使用等比压缩的大图。
 const scale = Math.min(1, 1920 / Math.max(photo.image.width, photo.image.height));
 const width = Math.max(1, Math.round(photo.image.width * scale));
 const height = Math.max(1, Math.round(photo.image.height * scale));
 const preview = await getImage({ src: photo.image, width, height, format: 'webp', quality: 85 });
+// Workers 单个静态文件最多 25 MiB；超限源文件只用于生成图片，不直接引用其 src。
+const originalTooLarge = photo.fileSize > 25 * 1024 * 1024;
+const largeScale = Math.min(1, 4096 / Math.max(photo.image.width, photo.image.height));
+const originalUrl = originalTooLarge
+	? (await getImage({
+		src: photo.image,
+		width: Math.max(1, Math.round(photo.image.width * largeScale)),
+		height: Math.max(1, Math.round(photo.image.height * largeScale)),
+		format: 'webp',
+		quality: 90,
+	})).src
+	: photo.image.src;
 ---
 
-<SpaceLayout title={`${photo.title} | ${home.name} 的相册`} description={photo.description || photo.alt} image={photo.image} bodyClass="photo-page">
+<SpaceLayout title={`${photo.title} | ${home.name} 的相册`} description={photo.description || photo.alt} image={{ src: preview.src, width, height, format: 'webp' }} bodyClass="photo-page">
 	<main id="main-content" class="album-main album-detail">
 		<a class="album-back" href="/photo/"><SpaceIcon name="left" />返回相册</a>
 		<header class="album-detail-heading"><div>{photo.category && <span class="album-eyebrow">{photo.category}</span>}<h1>{photo.title}</h1></div><time datetime={photo.date}>{photo.date.replaceAll('-', '.')}</time></header>
@@ -54,6 +66,6 @@ const preview = await getImage({ src: photo.image, width, height, format: 'webp'
 			{photo.description && <p>{photo.description}</p>}
 			<nav class="album-detail-controls" aria-label="照片切换"><span>{position} / {total}</span>{previous && <a href={`/photo/${encodeURIComponent(previous.id)}/`} rel="prev" aria-label={`上一张：${previous.title}`}><SpaceIcon name="left" /></a>}{next && <a href={`/photo/${encodeURIComponent(next.id)}/`} rel="next" aria-label={`下一张：${next.title}`}><SpaceIcon name="right" /></a>}</nav>
 		</div>
-		<a class="album-original" href={photo.image.src} target="_blank" rel="noopener noreferrer">在新标签页打开原图 <SpaceIcon name="arrow" /></a>
+		<a class="album-original" href={originalUrl} target="_blank" rel="noopener noreferrer">{originalTooLarge ? '在新标签页打开高清图' : '在新标签页打开原图'} <SpaceIcon name="arrow" /></a>
 	</main>
 </SpaceLayout>

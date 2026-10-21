@@ -9,6 +9,7 @@ export interface Photo {
 	id: string;
 	image: ImageMetadata;
 	filename: string;
+	fileSize: number;
 	title: string;
 	alt: string;
 	date: string;
@@ -22,7 +23,7 @@ export const albumDateNote = null;
 
 // 可选：按相对文件路径覆盖默认信息。只复制图片也会自动入册，无需逐张 import。
 // 已配置照片按此处的顺序展示；其余照片按路径排序，日期分组仍由 groupPhotos 处理。
-export const photoOverrides: Record<string, Partial<Omit<Photo, 'image' | 'filename'>>> = {
+export const photoOverrides: Record<string, Partial<Omit<Photo, 'image' | 'filename' | 'fileSize'>>> = {
 	
 };
 
@@ -36,8 +37,8 @@ const dateFormatter = new Intl.DateTimeFormat('en-CA', {
 	timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
 });
 
-function fileDate(relativePath: string): string {
-	const parts = dateFormatter.formatToParts(statSync(join(photoDirectory, relativePath)).mtime);
+function fileDate(mtime: Date): string {
+	const parts = dateFormatter.formatToParts(mtime);
 	const value = (type: string) => parts.find((part) => part.type === type)!.value;
 	return `${value('year')}-${value('month')}-${value('day')}`;
 }
@@ -49,6 +50,7 @@ export const photos: Photo[] = Object.entries(imageModules)
 		|| first.relativePath.localeCompare(second.relativePath, 'zh-CN'),
 	)
 	.map(({ relativePath, image }) => {
+		const fileInfo = statSync(join(photoDirectory, relativePath));
 		const segments = relativePath.split('/');
 		const filename = segments.at(-1)!;
 		const stem = filename.replace(/\.[^.]+$/, '');
@@ -61,9 +63,10 @@ export const photos: Photo[] = Object.entries(imageModules)
 			id: `${slug}-${suffix}`,
 			image,
 			filename,
+			fileSize: fileInfo.size,
 			title,
 			alt: `照片：${overrides?.title ?? title}`,
-			date: overrides?.date ?? fileDate(relativePath),
+			date: overrides?.date ?? fileDate(fileInfo.mtime),
 			// 根目录默认无分类，子目录使用直接所在的文件夹名；手动配置可覆盖。
 			category: segments.length > 1 ? segments.at(-2)! : null,
 			...overrides,
