@@ -1,0 +1,34 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import FormattedDate from './FormattedDate.astro';
+import SpaceIcon from './SpaceIcon.astro';
+
+interface Props {
+	post: CollectionEntry<'blog'>;
+	eager?: boolean;
+}
+
+const { post, eager = false } = Astro.props;
+const isTechnical = post.data.category === '技术';
+---
+
+<article class="blog-card">
+	<a class="blog-card-link" href={`/blog/${post.id}/`}>
+		<div class:list={['blog-cover', { 'cover-technical': isTechnical }]}>
+			{post.data.heroImage ? (
+				<Image src={post.data.heroImage} alt="" width={960} height={600} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+			) : (
+				<div class="blog-cover-art" aria-hidden="true">
+					{isTechnical ? <><span class="cover-brackets">{'{ }'}</span><span class="cover-caption">LEARN. BUILD. WRITE.</span></> : <><span class="cover-orbit"></span><span class="cover-sphere"></span><span class="cover-star">✳</span><span class="cover-caption">LEAVE A LITTLE SPACE.</span></>}
+				</div>
+			)}
+		</div>
+		<div class="blog-card-copy">
+			<div class="blog-card-meta"><span>{post.data.category}</span><FormattedDate date={post.data.pubDate} /></div>
+			<h2>{post.data.title}</h2>
+			<p>{post.data.description}</p>
+			<span class="blog-card-read">继续阅读 <SpaceIcon name="arrow" /></span>
+		</div>
+	</a>
+</article>

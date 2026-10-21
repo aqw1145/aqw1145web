@@ -1,157 +1,135 @@
 ---
-import { Image } from 'astro:assets';
-import BaseHead from '../../components/BaseHead.astro';
-import Footer from '../../components/Footer.astro';
-import Header from '../../components/Header.astro';
-import { SITE_TITLE } from '../../consts';
+import PhotoCard from '../../components/PhotoCard.astro';
+import SpaceIcon from '../../components/SpaceIcon.astro';
+import SpaceLayout from '../../layouts/SpaceLayout.astro';
+import { home } from '../../data/home';
+import { albumDateNote, photos } from '../../data/photos';
+import { groupPhotos } from '../../lib/groupPhotos';
+import '../../styles/photo.css';
 
-import Photo1 from '../../assets/blog-placeholder-1.jpg';
-import Photo2 from '../../assets/blog-placeholder-2.jpg';
-import Photo3 from '../../assets/blog-placeholder-3.jpg';
-import Photo4 from '../../assets/blog-placeholder-4.jpg';
-import Photo5 from '../../assets/blog-placeholder-5.jpg';
-import Photo6 from '../../assets/blog-placeholder-about.jpg';
-
-// 暂用项目已有的模板图片。替换 import 路径、标题和图片说明即可换成自己的照片。
-// 数组的排列顺序就是页面上的显示顺序。
-const photos = [
-	{ image: Photo1, title: '示例照片 01', alt: '模板示例图片 1' },
-	{ image: Photo2, title: '示例照片 02', alt: '模板示例图片 2' },
-	{ image: Photo3, title: '示例照片 03', alt: '模板示例图片 3' },
-	{ image: Photo4, title: '示例照片 04', alt: '模板示例图片 4' },
-	{ image: Photo5, title: '示例照片 05', alt: '模板示例图片 5' },
-	{ image: Photo6, title: '示例照片 06', alt: '模板关于页图片' },
-];
+const days = groupPhotos(photos);
+const weekday = new Intl.DateTimeFormat('zh-CN', { weekday: 'long', timeZone: 'Asia/Shanghai' });
 ---
 
-<!doctype html>
-<html lang="zh-CN">
-	<head>
-		<BaseHead title={`照片 | ${SITE_TITLE}`} description="用照片记录生活中的片刻。" />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<section aria-labelledby="photo-heading">
-				<div class="page-intro">
-					<h1 id="photo-heading">照片</h1>
-					<p>用照片记录生活中的片刻。点击照片，在新标签页查看大图。</p>
-				</div>
-				<ul class="photo-list">
-					{photos.map((photo) => (
-						<li>
-							<a
-								class="photo-link"
-								href={photo.image.src}
-								target="_blank"
-								rel="noopener noreferrer"
-								aria-label={`${photo.title}，在新标签页查看大图`}
-							>
-								<figure>
-									<div class="photo-frame">
-										<Image
-											class="photo-image"
-											src={photo.image}
-											alt={photo.alt}
-											width={960}
-											loading="lazy"
-											decoding="async"
-										/>
-									</div>
-									<figcaption>{photo.title}</figcaption>
-								</figure>
-							</a>
-							</li>
+<SpaceLayout title={`相册 | ${home.name} 的个人空间`} description="按日收藏影像，在每一天里慢慢整理喜欢的片刻。" bodyClass="photo-page">
+	<main id="main-content" class="album-main">
+		<div>
+			<div class="album-timeline-heading">
+				{days.length > 0 && <label class="album-sort" data-album-sort-control hidden><span>时间排序</span><select data-album-sort aria-controls="album-timeline"><option value="newest">从新到旧</option><option value="oldest">从旧到新</option></select></label>}
+				{days.length > 0 && <div class="album-search" role="search" aria-label="相册照片" data-album-search-control hidden><label for="album-search-input">搜索照片</label><input id="album-search-input" type="search" placeholder="名称、分类或日期，例如 2026-10 旅行" aria-controls="album-timeline" autocomplete="off" data-album-search /><button type="button" data-album-search-clear disabled>清空</button></div>}
+			</div>
+			<p class="album-search-status" role="status" aria-live="polite" aria-atomic="true" data-album-search-status hidden></p>
+			{days.length > 0 ? (
+				<div class="album-timeline" id="album-timeline" data-album-timeline>
+					{days.map((day, dayIndex) => (
+						<section class="album-day" data-album-date={day.date} aria-labelledby={`album-date-${day.date}`}>
+							<header class="album-date"><h2 id={`album-date-${day.date}`}><time datetime={day.date}><span class="album-year">{day.date.slice(0, 4)}</span><strong>{day.date.slice(5).replace('-', '.')}</strong></time></h2><span class="album-weekday">{weekday.format(new Date(`${day.date}T12:00:00+08:00`))}</span></header>
+							<div class="album-day-categories">
+								{day.categories.map((category, categoryIndex) => (
+									<section class="album-category" data-album-category data-album-category-name={category.name} aria-labelledby={category.name ? `album-category-${dayIndex}-${categoryIndex}` : undefined} aria-label={category.name ? undefined : `${day.date} 的照片`}>
+										{category.name && <header class="album-category-heading"><h3 id={`album-category-${dayIndex}-${categoryIndex}`}><SpaceIcon name="camera" />{category.name}</h3><span data-album-category-count>{category.photos.length} 张</span></header>}
+										<ul class="album-photo-grid">{category.photos.map((photo) => <li data-album-photo data-photo-title={photo.title} data-photo-filename={photo.filename} data-photo-date={photo.date}><PhotoCard photo={photo} /></li>)}</ul>
+									</section>
+								))}
+							</div>
+						</section>
 					))}
-				</ul>
-			</section>
-		</main>
-		<Footer />
-	</body>
-</html>
+				</div>
+			) : <div class="album-empty"><SpaceIcon name="camera" /><h2>第一张照片，还在路上。</h2><p>值得留下的片刻，会慢慢积累。</p></div>}
+			<div class="album-empty" data-album-no-results hidden><SpaceIcon name="camera" /><h2>没有找到匹配的照片</h2><p>试试其他名称、分类或日期，或清空搜索。</p></div>
+			<div class="album-timeline-end"><span aria-hidden="true">✳</span></div>
+		</div>
+	</main>
+</SpaceLayout>
 
-<style>
-	main {
-		width: 960px;
-	}
+<script>
+	const sortControl = document.querySelector<HTMLSelectElement>('[data-album-sort]');
+	const sortWrapper = document.querySelector<HTMLElement>('[data-album-sort-control]');
+	const timeline = document.querySelector<HTMLElement>('[data-album-timeline]');
+	if (sortControl && sortWrapper && timeline) {
+		const daySections = Array.from(timeline.querySelectorAll<HTMLElement>(':scope > [data-album-date]'));
+		const storageKey = 'aqw1145-album-sort';
+		const applySort = (order: string) => {
+			const oldestFirst = order === 'oldest';
+			sortControl.value = oldestFirst ? 'oldest' : 'newest';
+			const sorted = [...daySections].sort((first, second) => {
+				const difference = first.dataset.albumDate!.localeCompare(second.dataset.albumDate!);
+				return oldestFirst ? difference : -difference;
+			});
+			// 移动已有日期区块，保留分类、照片及其原生链接。
+			timeline.append(...sorted);
+		};
+		let preferredOrder = 'newest';
+		try { preferredOrder = localStorage.getItem(storageKey) ?? 'newest'; } catch {}
+		applySort(preferredOrder);
+		sortWrapper.hidden = false;
+		sortControl.addEventListener('change', () => {
+			applySort(sortControl.value);
+			try { localStorage.setItem(storageKey, sortControl.value); } catch {}
+		});
 
-	.page-intro {
-		margin-bottom: 2rem;
+		const searchControl = document.querySelector<HTMLInputElement>('[data-album-search]');
+		const searchWrapper = document.querySelector<HTMLElement>('[data-album-search-control]');
+		const clearSearch = document.querySelector<HTMLButtonElement>('[data-album-search-clear]');
+		const searchStatus = document.querySelector<HTMLElement>('[data-album-search-status]');
+		const noResults = document.querySelector<HTMLElement>('[data-album-no-results]');
+		if (searchControl && searchWrapper && clearSearch) {
+			const normalize = (value: string) => value.normalize('NFKC').toLowerCase().trim();
+			const normalizeDate = (value: string) => {
+				const date = value.replace(/[./年月]/g, '-').replace(/日/g, '').replace(/-+$/, '');
+				return /^\d{4}(?:-\d{1,2}){0,2}$/.test(date)
+					? date.split('-').map((part, index) => index === 0 ? part : part.padStart(2, '0')).join('-')
+					: date;
+			};
+			const searchableDays = daySections.map((day) => ({
+				element: day,
+				categories: Array.from(day.querySelectorAll<HTMLElement>('[data-album-category]')).map((category) => ({
+					element: category,
+					name: normalize(category.dataset.albumCategoryName ?? ''),
+					count: category.querySelector<HTMLElement>('[data-album-category-count]'),
+					photos: Array.from(category.querySelectorAll<HTMLElement>('[data-album-photo]')).map((photo) => ({
+						element: photo,
+						name: normalize(`${photo.dataset.photoTitle ?? ''} ${photo.dataset.photoFilename ?? ''}`),
+						date: photo.dataset.photoDate ?? '',
+					})),
+				})),
+			}));
+			const applySearch = () => {
+				const terms = normalize(searchControl.value).split(/\s+/).filter(Boolean).map((text) => ({ text, date: normalizeDate(text) }));
+				let total = 0;
+				for (const day of searchableDays) {
+					let dayCount = 0;
+					for (const category of day.categories) {
+						let count = 0;
+						for (const photo of category.photos) {
+							const matches = terms.every((term) => category.name.includes(term.text) || photo.name.includes(term.text)
+								|| photo.date.includes(term.date) || photo.date.replaceAll('-', '').includes(term.text));
+							photo.element.hidden = !matches;
+							if (matches) count++;
+						}
+						category.element.hidden = count === 0;
+						if (category.count) category.count.textContent = `${count} 张`;
+						dayCount += count;
+					}
+					day.element.hidden = dayCount === 0;
+					total += dayCount;
+				}
+				timeline.hidden = total === 0;
+				if (noResults) noResults.hidden = total !== 0;
+				if (searchStatus) {
+					searchStatus.textContent = `找到 ${total} 张照片`;
+					searchStatus.hidden = terms.length === 0;
+				}
+				clearSearch.disabled = searchControl.value.length === 0;
+			};
+			searchControl.addEventListener('input', applySearch);
+			clearSearch.addEventListener('click', () => {
+				searchControl.value = '';
+				applySearch();
+				searchControl.focus();
+			});
+			applySearch();
+			searchWrapper.hidden = false;
+		}
 	}
-
-	.page-intro h1 {
-		font-size: 2rem;
-	}
-
-	.page-intro p {
-		margin: 0;
-		color: rgb(var(--gray));
-	}
-
-	/* 所有照片统一双列，首张也使用相同布局。 */
-	.photo-list {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 2rem;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
-	.photo-list li {
-		min-width: 0;
-	}
-
-	figure {
-		margin: 0;
-	}
-
-	.photo-link {
-		display: block;
-		color: rgb(var(--black));
-		text-decoration: none;
-	}
-
-	.photo-frame {
-		aspect-ratio: 3 / 2;
-		overflow: hidden;
-		border-radius: 12px;
-		background: rgb(var(--gray-light));
-		transition: box-shadow 0.2s ease;
-	}
-
-	.photo-image {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		border-radius: 0;
-		transition: transform 0.2s ease;
-	}
-
-	figcaption {
-		margin-top: 0.75rem;
-		font-size: 1.1rem;
-		font-weight: 700;
-		line-height: 1.4;
-		transition: color 0.2s ease;
-	}
-
-	.photo-link:hover .photo-frame {
-		box-shadow: var(--box-shadow);
-	}
-
-	.photo-link:hover .photo-image {
-		transform: scale(1.02);
-	}
-
-	.photo-link:hover figcaption {
-		color: var(--accent);
-	}
-
-	.photo-link:focus-visible {
-		outline: 3px solid var(--accent);
-		outline-offset: 6px;
-		border-radius: 12px;
-	}
-</style>
+</script>

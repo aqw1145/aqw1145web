@@ -1,112 +1,54 @@
 ---
-import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
-import BaseHead from '../../components/BaseHead.astro';
-import Footer from '../../components/Footer.astro';
-import FormattedDate from '../../components/FormattedDate.astro';
-import Header from '../../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import BlogCard from '../../components/BlogCard.astro';
+import SpaceLayout from '../../layouts/SpaceLayout.astro';
+import { home } from '../../data/home';
+import '../../styles/blog.css';
 
 const posts = (await getCollection('blog')).sort(
 	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
 );
+const categories = [...new Set(posts.map((post) => post.data.category))];
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-		<style>
-			main {
-				width: 960px;
-			}
-			ul {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 2rem;
-				list-style-type: none;
-				margin: 0;
-				padding: 0;
-			}
-			ul li {
-				width: calc(50% - 1rem);
-			}
-			ul li * {
-				text-decoration: none;
-				transition: 0.2s ease;
-			}
-			ul li:first-child {
-				width: 100%;
-				margin-bottom: 1rem;
-				text-align: center;
-			}
-			ul li:first-child img {
-				width: 100%;
-			}
-			ul li:first-child .title {
-				font-size: 2.369rem;
-			}
-			ul li img {
-				margin-bottom: 0.5rem;
-				border-radius: 12px;
-			}
-			ul li a {
-				display: block;
-			}
-			.title {
-				margin: 0;
-				color: rgb(var(--black));
-				line-height: 1;
-			}
-			.date {
-				margin: 0;
-				color: rgb(var(--gray));
-			}
-			ul li a:hover h4,
-			ul li a:hover .date {
-				color: rgb(var(--accent));
-			}
-			ul a:hover img {
-				box-shadow: var(--box-shadow);
-			}
-			@media (max-width: 720px) {
-				ul {
-					gap: 0.5em;
-				}
-				ul li {
-					width: 100%;
-					text-align: center;
-				}
-				ul li:first-child {
-					margin-bottom: 0;
-				}
-				ul li:first-child .title {
-					font-size: 1.563em;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<Header />
-		<main>
-			<section>
-				<ul>
-					{posts.map((post) => (
-						<li>
-							<a href={`/blog/${post.id}/`}>
-								{post.data.heroImage && (
-									<Image width={720} height={360} src={post.data.heroImage} alt="" />
-								)}
-								<h4 class="title">{post.data.title}</h4>
-								<p class="date">
-									<FormattedDate date={post.data.pubDate} />
-								</p>
-							</a>
-						</li>
-					))}
-				</ul>
-			</section>
-		</main>
-		<Footer />
-	</body>
-</html>
+<SpaceLayout title={`文章 | ${home.name} 的个人空间`} description="技术笔记与生活随笔，记录想法、探索与日常。" bodyClass="blog-page">
+	<main id="main-content" class="blog-main">
+		<div class="blog-toolbar">
+			<div class="blog-filters" role="group" aria-label="文章分类" data-blog-filters hidden>
+				<button type="button" data-category-filter="" aria-pressed="true" aria-controls="blog-posts">全部文章</button>
+				{categories.map((category) => <button type="button" data-category-filter={category} aria-pressed="false" aria-controls="blog-posts">{category}</button>)}
+			</div>
+			<p class="blog-count" aria-live="polite" aria-atomic="true" data-blog-count>共 {posts.length} 篇文章</p>
+		</div>
+		{posts.length > 0 ? (
+			<ul class="blog-grid" id="blog-posts" aria-label="文章列表">
+				{posts.map((post, index) => <li class="blog-item" data-post-category={post.data.category}><BlogCard post={post} eager={index === 0} /></li>)}
+			</ul>
+		) : (
+			<div class="blog-empty" id="blog-posts"><span aria-hidden="true">✳</span><h2>第一篇文章，还在酝酿中。</h2><p>想法会慢慢积累，故事也会。</p></div>
+		)}
+	</main>
+</SpaceLayout>
+
+<script>
+	const filters = document.querySelector<HTMLElement>('[data-blog-filters]');
+	const count = document.querySelector<HTMLElement>('[data-blog-count]');
+	const items = Array.from(document.querySelectorAll<HTMLElement>('[data-post-category]'));
+	const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-category-filter]'));
+	if (filters && items.length > 0) {
+		filters.hidden = false;
+		buttons.forEach((button) => {
+			button.addEventListener('click', () => {
+				const category = button.dataset.categoryFilter ?? '';
+				let visible = 0;
+				items.forEach((item) => {
+					const matches = category === '' || item.dataset.postCategory === category;
+					item.hidden = !matches;
+					if (matches) visible++;
+				});
+				buttons.forEach((option) => option.setAttribute('aria-pressed', String(option === button)));
+				if (count) count.textContent = category ? `${category} · ${visible} 篇文章` : `共 ${visible} 篇文章`;
+			});
+		});
+	}
+</script>

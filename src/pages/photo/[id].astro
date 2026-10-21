@@ -1,0 +1,59 @@
+---
+import { getImage } from 'astro:assets';
+import PhotoZoom from '../../components/PhotoZoom.astro';
+import SpaceIcon from '../../components/SpaceIcon.astro';
+import SpaceLayout from '../../layouts/SpaceLayout.astro';
+import { home } from '../../data/home';
+import { albumDateNote, photos, type Photo } from '../../data/photos';
+import { groupPhotos } from '../../lib/groupPhotos';
+import '../../styles/photo.css';
+
+export function getStaticPaths() {
+	const orderedPhotos = groupPhotos(photos).flatMap((day) =>
+		day.categories.flatMap((category) => category.photos.map((photo) => ({ ...photo, category: category.name || null }))),
+	);
+	const ids = new Set<string>();
+	return orderedPhotos.map((photo, index) => {
+		if (!photo.id.trim() || ids.has(photo.id)) throw new Error(`照片 id 不能为空或重复：${photo.id}`);
+		ids.add(photo.id);
+		return {
+			params: { id: photo.id },
+			props: {
+				photo,
+				previous: orderedPhotos.length > 1 ? orderedPhotos[(index - 1 + orderedPhotos.length) % orderedPhotos.length] : undefined,
+				next: orderedPhotos.length > 1 ? orderedPhotos[(index + 1) % orderedPhotos.length] : undefined,
+				position: index + 1,
+				total: orderedPhotos.length,
+			},
+		};
+	});
+}
+
+interface Props {
+	photo: Photo;
+	previous?: Photo;
+	next?: Photo;
+	position: number;
+	total: number;
+}
+const { photo, previous, next, position, total } = Astro.props;
+// 普通浏览使用等比压缩的大图，原始文件由独立链接提供。
+const scale = Math.min(1, 1920 / Math.max(photo.image.width, photo.image.height));
+const width = Math.max(1, Math.round(photo.image.width * scale));
+const height = Math.max(1, Math.round(photo.image.height * scale));
+const preview = await getImage({ src: photo.image, width, height, format: 'webp', quality: 85 });
+---
+
+<SpaceLayout title={`${photo.title} | ${home.name} 的相册`} description={photo.description || photo.alt} image={photo.image} bodyClass="photo-page">
+	<main id="main-content" class="album-main album-detail">
+		<a class="album-back" href="/photo/"><SpaceIcon name="left" />返回相册</a>
+		<header class="album-detail-heading"><div>{photo.category && <span class="album-eyebrow">{photo.category}</span>}<h1>{photo.title}</h1></div><time datetime={photo.date}>{photo.date.replaceAll('-', '.')}</time></header>
+		{albumDateNote && <p class="album-date-note album-detail-date-note">{albumDateNote}</p>}
+		<PhotoZoom src={preview.src} width={width} height={height} alt={photo.alt} />
+		<div class="album-detail-footer">
+			{photo.description && <p>{photo.description}</p>}
+			<nav class="album-detail-controls" aria-label="照片切换"><span>{position} / {total}</span>{previous && <a href={`/photo/${encodeURIComponent(previous.id)}/`} rel="prev" aria-label={`上一张：${previous.title}`}><SpaceIcon name="left" /></a>}{next && <a href={`/photo/${encodeURIComponent(next.id)}/`} rel="next" aria-label={`下一张：${next.title}`}><SpaceIcon name="right" /></a>}</nav>
+		</div>
+		<a class="album-original" href={photo.image.src} target="_blank" rel="noopener noreferrer">在新标签页打开原图 <SpaceIcon name="arrow" /></a>
+	</main>
+</SpaceLayout>

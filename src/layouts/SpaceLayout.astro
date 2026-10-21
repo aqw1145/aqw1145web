@@ -1,0 +1,78 @@
+---
+import type { ImageMetadata } from 'astro';
+import BaseHead from '../components/BaseHead.astro';
+import SpaceIcon from '../components/SpaceIcon.astro';
+import { home } from '../data/home';
+import '../styles/home.css';
+
+interface Props {
+	title: string;
+	description: string;
+	image?: ImageMetadata;
+	bodyClass?: string;
+}
+
+const { title, description, image, bodyClass } = Astro.props;
+const pathname = Astro.url.pathname;
+const navigation = [
+	{ href: '/', label: '首页', active: pathname === '/' },
+	{ href: '/blog/', label: '文章', active: pathname === '/blog' || pathname.startsWith('/blog/') },
+	{ href: '/photo/', label: '相册', active: pathname === '/photo' || pathname.startsWith('/photo/') },
+];
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<BaseHead title={title} description={description} image={image} />
+		<meta name="color-scheme" content="light dark" />
+		<script is:inline>
+			try {
+				const saved = localStorage.getItem('aqw1145-home-theme');
+				if (saved === 'light' || saved === 'dark') document.documentElement.dataset.homeTheme = saved;
+			} catch {}
+		</script>
+	</head>
+	<body class:list={['home', bodyClass]}>
+		<a class="skip-link" href="#main-content">跳到主要内容</a>
+		<div class="space-shell">
+			<header class="space-header">
+				<a class="space-brand" href="/" aria-label={`${home.name} 的首页`}>
+					<span>{home.name}</span>
+				</a>
+				<div class="header-actions">
+					<nav class="space-nav" aria-label="主导航">
+						{navigation.map((item) => <a href={item.href} aria-current={item.active ? 'page' : undefined}>{item.label}</a>)}
+					</nav>
+					<span class="nav-divider" aria-hidden="true"></span>
+					<button class="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false" data-theme-toggle>
+						<SpaceIcon name="moon" class="theme-moon" /><SpaceIcon name="sun" class="theme-sun" />
+					</button>
+				</div>
+			</header>
+			<slot />
+			<footer class="space-footer"><div><span>© {year}</span><a href="#main-content">回到顶部 ↑</a></div></footer>
+		</div>
+		<script>
+			const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+			const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+			const isDark = () => document.documentElement.dataset.homeTheme
+				? document.documentElement.dataset.homeTheme === 'dark'
+				: systemTheme.matches;
+			const syncToggle = () => {
+				if (!toggle) return;
+				toggle.setAttribute('aria-pressed', String(isDark()));
+				toggle.setAttribute('aria-label', isDark() ? '切换浅色模式' : '切换深色模式');
+			};
+			toggle?.addEventListener('click', () => {
+				const next = isDark() ? 'light' : 'dark';
+				document.documentElement.dataset.homeTheme = next;
+				try { localStorage.setItem('aqw1145-home-theme', next); } catch {}
+				syncToggle();
+			});
+			systemTheme.addEventListener('change', syncToggle);
+			syncToggle();
+		</script>
+	</body>
+</html>

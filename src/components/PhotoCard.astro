@@ -1,0 +1,21 @@
+---
+import { Image } from 'astro:assets';
+import type { Photo } from '../data/photos';
+
+interface Props {
+	photo: Photo;
+}
+const { photo } = Astro.props;
+---
+
+<a
+	class="album-photo-link"
+	id={`photo-${photo.id}`}
+	href={`/photo/${encodeURIComponent(photo.id)}/`}
+	aria-label={`查看${photo.title}详情`}
+>
+	<figure>
+		<div class="album-photo-frame"><Image src={photo.image} alt={photo.alt} width={800} height={550} loading="lazy" decoding="async" /></div>
+		<figcaption>{photo.title}</figcaption>
+	</figure>
+</a>

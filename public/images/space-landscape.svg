@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="360" y1="0" x2="360" y2="420" gradientUnits="userSpaceOnUse"><stop stop-color="#d8e6e3"/><stop offset="1" stop-color="#ecede0"/></linearGradient>
+    <linearGradient id="water" x1="360" y1="220" x2="360" y2="420" gradientUnits="userSpaceOnUse"><stop stop-color="#a5bcb4"/><stop offset="1" stop-color="#c5d5c8"/></linearGradient>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h720v420H0z"/>
+  <circle cx="515" cy="104" r="42" fill="#fcf1cf"/>
+  <path d="m218 255 159-163 155 163H218Z" fill="#b9ccc2"/>
+  <path d="m0 269 192-174 207 174H0Z" fill="#8da99b"/>
+  <path d="m410 277 190-139 120 108v31H410Z" fill="#728e7f"/>
+  <path d="M0 259c125-17 230-16 346 1s258 13 374-11v171H0V259Z" fill="url(#water)"/>
+  <path d="m53 261 139 106 124-103-263-3Z" fill="#8da99b" opacity=".2"/>
+  <path d="M378 278h96m-8 17h112m-328 22h128m-49 22h170m-70 20h87m-282 19h139" stroke="#e2e8db" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <path d="M0 338c57-21 115-7 178 31 40 24 67 29 102 30v21H0v-82Z" fill="#5b7e69"/>
+  <path d="M720 318c-80 10-111 44-163 72-33 19-71 21-104 30h267V318Z" fill="#3e6553"/>
+  <path d="M655 338v-77m-18 21 18-25 18 25m-41 16 23-31 23 31m-53 16 30-39 30 39" stroke="#3e6553" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
